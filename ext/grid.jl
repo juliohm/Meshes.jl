@@ -50,6 +50,15 @@ function vizgridfallback!(plot, M, pdim, edim)
   # process color spec into colorant
   colorant = Makie.@lift process($color, $colormap, $colorrange, $alpha)
 
+  colors = Makie.@lift begin
+    if $colorant isa AbstractVector
+      inds = _invalidinds($grid)
+      [i ∈ inds ? Makie.Colors.coloralpha(c, 0) : c for (i, c) in enumerate($colorant)]
+    else
+      $colorant
+    end
+  end
+
   # number of vertices, elements and colors
   nverts = Makie.@lift nvertices($grid)
   nelems = Makie.@lift nelements($grid)
@@ -69,11 +78,11 @@ function vizgridfallback!(plot, M, pdim, edim)
     dims = Makie.@lift size($grid)
     vdims = Makie.@lift Meshes.vsize($grid)
     texture = if ncolor[] == 1
-      Makie.@lift fill($colorant, $dims)
+      Makie.@lift fill($colors, $dims)
     elseif ncolor[] == nelems[]
-      Makie.@lift reshape($colorant, $dims)
+      Makie.@lift reshape($colors, $dims)
     elseif ncolor[] == nverts[]
-      Makie.@lift reshape($colorant, $vdims)
+      Makie.@lift reshape($colors, $vdims)
     else
       throw(ArgumentError("invalid number of colors"))
     end
@@ -95,6 +104,54 @@ function vizgridfallback!(plot, M, pdim, edim)
 end
 
 _reverse(grid) = crs(grid) <: LatLon && orientation(first(grid)) == CW ? reverse : identity
+
+function _invalidinds(grid)
+  if crs(grid) <: Projected && (grid isa RegularGrid || (grid isa TransformedGrid && parent(grid) isa RegularGrid))
+    tgrid = grid |> Proj(LatLon)
+
+    dims = size(tgrid)
+    topo = topology(tgrid)
+    sx, sy = dims
+    B = Boundary{2,0}(topo)
+
+    lon(i) = coords(vertex(tgrid, i)).lon
+    function isinvalid(e)
+      is = B(e)
+      lon(is[1]) > lon(is[3])
+    end
+
+    inds = Int[]
+    linds = LinearIndices(dims)
+    for i in 1:sx
+      e = linds[i, 1]
+      if isinvalid(e)
+        push!(inds, e)
+      end
+    end
+
+    # @info inds
+
+    if !isempty(inds)
+      A = Adjacency{2}(topo)
+      while true
+        e = last(inds)
+        es = setdiff(A(e), inds)
+        i = findfirst(isinvalid, es)
+        if isnothing(i)
+          break
+        else
+          push!(inds, es[i])
+          # @info inds
+        end
+      end
+      inds
+    else
+      Int[]
+    end
+  else
+    Int[]
+  end
+end
 
 # helper functions to create a minimum number
 # of line segments within Cartesian/Rectilinear grid

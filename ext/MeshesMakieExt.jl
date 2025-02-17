@@ -14,6 +14,7 @@ using Colorfy
 
 using Unitful: numtype
 using Meshes: lentype
+using CoordRefSystems: Projected
 
 import TransformsBase as TB
 import Makie.GeometryBasics as GB
