@@ -4,6 +4,7 @@
 
 module Meshes
 
+using BinaryTrees
 using CoordRefSystems
 using StaticArrays
 using SparseArrays

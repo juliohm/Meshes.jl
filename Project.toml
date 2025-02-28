@@ -5,6 +5,7 @@ version = "0.53.0"
 
 [deps]
 Bessels = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
+BinaryTrees = "289e92be-c05a-437b-9e67-5b0c799891f8"
 CircularArrays = "7a955b69-7140-5f4e-a0ed-f168c5e2e749"
 Colorfy = "03fe91ce-8ec6-4610-8e8d-e7491ccca690"
 CoordRefSystems = "b46f11dc-f210-4604-bfba-323c1ec968cb"
